@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  code-server:
+    image: codercom/code-server:latest
+    container_name: openpad-code-server
+    ports:
+      - "8080:8080"
+    environment:
+      - DOCKER_USER=coder
+      - DISABLE_TELEMETRY=true
+      - DISABLE_UPDATE_CHECK=true
+      - CS_DISABLE_FILE_DOWNLOADS=true
+      - CS_DISABLE_GETTING_STARTED_OVERRIDE=true
+    volumes:
+      - workspace:/home/coder/project
+    working_dir: /home/coder/project
+    command: code-server --auth none --bind-addr 0.0.0.0:8080 --disable-telemetry /home/coder/project
+    restart: unless-stopped
+    networks:
+      - openpad-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  workspace:
+
+networks:
+  openpad-network:
+    name: openpad-network
+
