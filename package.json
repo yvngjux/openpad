@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "NODE_OPTIONS='--dns-result-order=ipv4first --no-ipv6 --dns-result-order=ipv4first' UV_THREADPOOL_SIZE=64 NODE_ENV=production node --dns-result-order=ipv4first server.js",
+    "start": "NODE_OPTIONS='--dns-result-order=ipv4first' UV_THREADPOOL_SIZE=64 NODE_ENV=production node server.js",
     "lint": "next lint"
   },
   "dependencies": {
