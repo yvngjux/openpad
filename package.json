@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start -p 3000 -H 0.0.0.0",
+    "start": "NODE_ENV=production HOST=0.0.0.0 PORT=3000 next start",
     "lint": "next lint"
   },
   "dependencies": {
