@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "NODE_ENV=production HOST=0.0.0.0 PORT=3000 next start",
+    "start": "NODE_ENV=production HOSTNAME=0.0.0.0 PORT=3000 UV_THREADPOOL_SIZE=64 node --dns-result-order=ipv4first ./node_modules/.bin/next start",
     "lint": "next lint"
   },
   "dependencies": {
