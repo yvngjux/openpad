@@ -1,0 +1,25 @@
+{
+  "workbench.startupEditor": "none",
+  "workbench.welcomePage.walkthroughs.openOnInstall": false,
+  "extensions.autoUpdate": false,
+  "extensions.autoCheckUpdates": false,
+  "telemetry.telemetryLevel": "off",
+  "workbench.enableExperiments": false,
+  "update.mode": "none",
+  "workbench.settings.enableNaturalLanguageSearch": false,
+  "security.workspace.trust.enabled": false,
+  "workbench.colorTheme": "Default Dark+",
+  "window.menuBarVisibility": "visible",
+  "files.autoSave": "off",
+  "explorer.compactFolders": false,
+  "workbench.editor.restoreViewState": false,
+  "files.exclude": {
+    "**/.git": true,
+    "**/.config": true,
+    "**/node_modules": true
+  },
+  "explorer.openEditors.visible": 0,
+  "workbench.editor.enablePreview": false,
+  "workbench.editor.showTabs": true,
+  "files.hotExit": "off"
+} 
