@@ -1,5 +1,5 @@
 export interface Flashcard {
-  id: string;
+  id?: string;
   question: string;
   answer: string;
   category?: string;
@@ -11,10 +11,10 @@ export interface Flashcard {
 export interface FlashcardDeck {
   id: string;
   title: string;
-  description?: string;
+  description: string;
   cards: Flashcard[];
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface FlashcardSession {
