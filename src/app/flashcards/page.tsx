@@ -247,7 +247,7 @@ export default function FlashcardsPage() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            topic,
+            content: topic,
             numCards,
           }),
         });
