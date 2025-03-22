@@ -56,11 +56,21 @@ export async function POST(req: Request) {
       const completion = await createChatCompletion([
         {
           role: 'system',
-          content: 'You are a flashcard generator. Create concise, educational flashcards. Each flashcard should have a clear question and answer. Focus on key concepts and keep answers brief.'
+          content: 'You are a flashcard generator. Create concise, educational flashcards. Each flashcard should have a clear question and answer. Focus on key concepts and keep answers brief. Always respond with valid JSON.'
         },
         {
           role: 'user',
-          content: `Create 5 flashcards about "${content}". Format as JSON array with "question" and "answer" fields. Keep answers under 100 words. Example format: [{"question": "What is X?", "answer": "X is Y"}]`
+          content: `Create 5 flashcards about "${content}". Format as a JSON object with this exact structure:
+{
+  "title": "${content}",
+  "description": "Brief description of ${content}",
+  "cards": [
+    {
+      "question": "What is X?",
+      "answer": "X is Y"
+    }
+  ]
+}`
         }
       ], 0.7, 800); // Reduced token limit for faster responses
 
@@ -72,12 +82,31 @@ export async function POST(req: Request) {
       }
 
       try {
-        const flashcards = JSON.parse(response);
+        const parsedResponse = JSON.parse(response);
+        
+        // Validate the response structure
+        if (!parsedResponse.cards || !Array.isArray(parsedResponse.cards)) {
+          throw new Error('Invalid response format: missing cards array');
+        }
+
+        // Validate each card has question and answer
+        const validCards = parsedResponse.cards.filter((card: any) => 
+          card && typeof card.question === 'string' && typeof card.answer === 'string'
+        );
+
+        if (validCards.length === 0) {
+          throw new Error('No valid flashcards in response');
+        }
+
         const deck: FlashcardDeck = {
           id: Math.random().toString(36).substring(7),
-          title: content,
-          description: `Flashcards about ${content}`,
-          cards: flashcards,
+          title: parsedResponse.title || content,
+          description: parsedResponse.description || `Flashcards about ${content}`,
+          cards: validCards.map((card: any) => ({
+            id: Math.random().toString(36).substring(7),
+            question: card.question,
+            answer: card.answer
+          })),
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
