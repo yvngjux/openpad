@@ -4,9 +4,10 @@ const nextConfig = {
   distDir: '.next',
   reactStrictMode: true,
   experimental: {
-    serverActions: {
-      bodySizeLimit: '2mb'
-    }
+    serverActions: true,
+  },
+  images: {
+    domains: ['localhost'],
   },
   webpack: (config) => {
     config.resolve.fallback = { 
@@ -28,10 +29,23 @@ const nextConfig = {
       type: 'asset/resource'
     });
     
+    config.externals.push({
+      'utf-8-validate': 'commonjs utf-8-validate',
+      'bufferutil': 'commonjs bufferutil',
+    });
+    
     return config;
   },
   typescript: {
     ignoreBuildErrors: true
+  },
+  serverRuntimeConfig: {
+    // Will only be available on the server side
+    functionTimeout: 30, // 30 seconds
+  },
+  // Increase serverless function timeout
+  functions: {
+    maxDuration: 60 // This sets a 60-second timeout
   }
 };
 

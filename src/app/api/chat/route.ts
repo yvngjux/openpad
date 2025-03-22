@@ -66,27 +66,42 @@ async function fetchNewsArticles(query: string): Promise<Array<{
 }
 
 async function createOpenAIChatCompletion(messages: any[], temperature: number = 0.7, maxTokens: number = 2000) {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
-    },
-    body: JSON.stringify({
-      messages,
-      model: 'gpt-4-turbo-preview',
-      temperature,
-      max_tokens: maxTokens,
-      stream: false
-    })
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 50000); // 50 second timeout
 
-  if (!response.ok) {
-    throw new Error(`OpenAI API error: ${response.status}`);
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        messages,
+        model: 'gpt-4-turbo-preview',
+        temperature,
+        max_tokens: maxTokens,
+        stream: false
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`OpenAI API error: ${response.status}${errorData.error ? ' - ' + errorData.error.message : ''}`);
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error?.name === 'AbortError') {
+      throw new Error('Request timed out after 50 seconds');
+    }
+    throw error;
   }
-
-  const data = await response.json();
-  return data;
 }
 
 async function createGrokChatCompletion(messages: any[], temperature: number = 0.7, maxTokens: number = 2000) {
@@ -203,20 +218,25 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { message, messages, withSearch, isCursus } = body;
 
-    // Handle single message explanation requests
-    if (message) {
-      const { isBriefExplanation } = body;
-      const systemMessage = isBriefExplanation ? {
-        role: 'system' as const,
-        content: `You are a helpful tutor explaining flashcard concepts. When explaining:
+    // Add request timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 55000); // 55 second timeout
+
+    try {
+      // Handle single message explanation requests
+      if (message) {
+        const { isBriefExplanation } = body;
+        const systemMessage = isBriefExplanation ? {
+          role: 'system' as const,
+          content: `You are a helpful tutor explaining flashcard concepts. When explaining:
 - Provide a direct, clear explanation of the concept in 2-3 sentences
 - Use simple, straightforward language
 - Focus only on the core concept
 - End your response with:
   "\n\nWould you like a more detailed STEM-style explanation of this concept? Reply with 'Yes' if you'd like to learn more, or continue with your flashcards if this explanation was sufficient."`
-      } : {
-        role: 'system' as const,
-        content: `You are a STEM tutor providing detailed, comprehensive explanations. Format your response as follows:
+        } : {
+          role: 'system' as const,
+          content: `You are a STEM tutor providing detailed, comprehensive explanations. Format your response as follows:
 
 1. Text formatting:
    - For bold text and headings, use **text** (markdown bold)
@@ -243,132 +263,145 @@ export async function POST(req: Request) {
    - Indent sub-points with spaces
 
 Remember: Use markdown bold (**text**) for all bold text and headings to ensure proper rendering in the chat interface.`
-      };
+        };
 
-      let prompt = systemMessage.content;
-      // If it's a brief explanation, append a note about not including a follow-up question
-      if (isBriefExplanation) {
-        prompt = `${prompt}\n\nProvide a clear and concise explanation. Do not ask if they want more details - the system will handle that prompt.`;
-      }
-
-      const completion = await createOpenAIChatCompletion([
-        systemMessage,
-        {
-          role: 'user' as const,
-          content: message.startsWith('Yes') && messages?.length > 1 ? 
-            `Provide a detailed STEM explanation for the previous flashcard concept: ${messages[messages.length - 2].content}` :
-            message
+        let prompt = systemMessage.content;
+        // If it's a brief explanation, append a note about not including a follow-up question
+        if (isBriefExplanation) {
+          prompt = `${prompt}\n\nProvide a clear and concise explanation. Do not ask if they want more details - the system will handle that prompt.`;
         }
-      ], 0.7, isBriefExplanation ? 200 : 2000);
 
-      return NextResponse.json({
-        response: completion.choices[0]?.message?.content || 'No response generated'
-      });
-    }
-
-    // Handle study tool commands
-    const lastMessage = messages[messages.length - 1];
-    const messageContent = lastMessage.content;
-
-    if (messageContent.startsWith('@flashcards')) {
-      const topic = messageContent.replace('@flashcards', '').trim();
-      try {
-        const flashcards = await generateFlashcards(topic);
-        return NextResponse.json({
-          type: 'flashcards',
-          topic,
-          data: flashcards,
-          content: `I've generated some flashcards about ${topic}. Click the button below to study them.`,
-          message: `I've generated some flashcards about ${topic}. Click the button below to study them.`
-        });
-      } catch (error) {
-        console.error('Error generating flashcards:', error);
-        return NextResponse.json({
-          content: 'Sorry, I encountered an error while generating flashcards. Please try again.'
-        });
-      }
-    } 
-    
-    if (messageContent.startsWith('@mcq')) {
-      const topic = messageContent.replace('@mcq', '').trim();
-      try {
-        const questions = await generateMCQ(topic);
-        return NextResponse.json({
-          type: 'mcq',
-          topic,
-          data: questions,
-          content: `I've created a multiple choice quiz about ${topic}. Click the button below to test your knowledge.`,
-          message: `I've created a multiple choice quiz about ${topic}. Click the button below to test your knowledge.`
-        });
-      } catch (error) {
-        console.error('Error generating MCQ:', error);
-        return NextResponse.json({
-          content: 'Sorry, I encountered an error while generating the quiz. Please try again.'
-        });
-      }
-    }
-
-    // Handle web search requests
-    if (withSearch) {
-      try {
-        // Directly fetch news without the initial Grok call
-        const articles = await fetchNewsArticles(messageContent);
-        
-        // Format articles for analysis
-        const newsData = articles.map(article => 
-          `Title: ${article.title}\nSource: ${article.source}\nPublished: ${article.publishedAt}\nURL: ${article.url}\nDescription: ${article.description}\n`
-        ).join('\n');
-
-        // Have Grok analyze the news data
-        const completion = await createGrokChatCompletion([
+        const completion = await createOpenAIChatCompletion([
+          systemMessage,
           {
-            role: 'system',
-            content: `You are a real-time news assistant. Analyze and summarize the following news articles:
+            role: 'user' as const,
+            content: message.startsWith('Yes') && messages?.length > 1 ? 
+              `Provide a detailed STEM explanation for the previous flashcard concept: ${messages[messages.length - 2].content}` :
+              message
+          }
+        ], 0.7, isBriefExplanation ? 200 : 2000);
+
+        clearTimeout(timeoutId);
+        return NextResponse.json({
+          response: completion.choices[0]?.message?.content || 'No response generated'
+        });
+      }
+
+      // Handle study tool commands
+      const lastMessage = messages[messages.length - 1];
+      const messageContent = lastMessage.content;
+
+      if (messageContent.startsWith('@flashcards')) {
+        const topic = messageContent.replace('@flashcards', '').trim();
+        try {
+          const flashcards = await generateFlashcards(topic);
+          return NextResponse.json({
+            type: 'flashcards',
+            topic,
+            data: flashcards,
+            content: `I've generated some flashcards about ${topic}. Click the button below to study them.`,
+            message: `I've generated some flashcards about ${topic}. Click the button below to study them.`
+          });
+        } catch (error) {
+          console.error('Error generating flashcards:', error);
+          return NextResponse.json({
+            content: 'Sorry, I encountered an error while generating flashcards. Please try again.'
+          });
+        }
+      } 
+      
+      if (messageContent.startsWith('@mcq')) {
+        const topic = messageContent.replace('@mcq', '').trim();
+        try {
+          const questions = await generateMCQ(topic);
+          return NextResponse.json({
+            type: 'mcq',
+            topic,
+            data: questions,
+            content: `I've created a multiple choice quiz about ${topic}. Click the button below to test your knowledge.`,
+            message: `I've created a multiple choice quiz about ${topic}. Click the button below to test your knowledge.`
+          });
+        } catch (error) {
+          console.error('Error generating MCQ:', error);
+          return NextResponse.json({
+            content: 'Sorry, I encountered an error while generating the quiz. Please try again.'
+          });
+        }
+      }
+
+      // Handle web search requests
+      if (withSearch) {
+        try {
+          // Directly fetch news without the initial Grok call
+          const articles = await fetchNewsArticles(messageContent);
+          
+          // Format articles for analysis
+          const newsData = articles.map(article => 
+            `Title: ${article.title}\nSource: ${article.source}\nPublished: ${article.publishedAt}\nURL: ${article.url}\nDescription: ${article.description}\n`
+          ).join('\n');
+
+          // Have Grok analyze the news data
+          const completion = await createGrokChatCompletion([
+            {
+              role: 'system',
+              content: `You are a real-time news assistant. Analyze and summarize the following news articles:
 1. Focus on the most recent and relevant information
 2. Structure the response with clear sections
 3. Include publication dates and sources
 4. Add insights about trends or implications
 5. Be clear about the timeframe of the information`
-          },
-          {
-            role: 'user',
-            content: `Here are the latest news articles about "${messageContent}":\n\n${newsData}\n\nPlease analyze and summarize this information, focusing on the most recent developments and their implications.`
-          }
-        ], 0.7, 4096);
+            },
+            {
+              role: 'user',
+              content: `Here are the latest news articles about "${messageContent}":\n\n${newsData}\n\nPlease analyze and summarize this information, focusing on the most recent developments and their implications.`
+            }
+          ], 0.7, 4096);
 
-        return NextResponse.json({
-          content: completion.choices[0]?.message?.content || 'No response generated'
-        });
-      } catch (error) {
-        console.error('Web search error:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-        return NextResponse.json({
-          content: `I apologize, but I encountered an error while searching for real-time information. ${errorMessage}`
-        });
+          return NextResponse.json({
+            content: completion.choices[0]?.message?.content || 'No response generated'
+          });
+        } catch (error) {
+          console.error('Web search error:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+          return NextResponse.json({
+            content: `I apologize, but I encountered an error while searching for real-time information. ${errorMessage}`
+          });
+        }
       }
-    }
 
-    // Handle regular chat
-    try {
+      // Handle regular chat
       const completion = await createOpenAIChatCompletion([
         SYSTEM_MESSAGE,
         ...messages
       ], isCursus ? 0.5 : 0.7, isCursus ? 4096 : 2048);
 
+      clearTimeout(timeoutId);
       return NextResponse.json({
         content: completion.choices[0]?.message?.content || 'No response generated'
       });
-    } catch (apiError) {
+    } catch (apiError: any) {
+      clearTimeout(timeoutId);
       console.error('API Error:', apiError);
+      
+      let errorMessage = 'Failed to generate response';
+      if (apiError?.name === 'AbortError') {
+        errorMessage = 'Request timed out. Please try again.';
+      } else if (apiError instanceof Error) {
+        errorMessage = apiError.message;
+      }
+
       return NextResponse.json(
-        { error: 'Failed to generate response', details: apiError instanceof Error ? apiError.message : 'Unknown error' },
-        { status: 500 }
+        { error: errorMessage },
+        { status: apiError?.name === 'AbortError' ? 504 : 500 }
       );
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in chat API:', error);
     return NextResponse.json(
-      { error: 'Failed to process request', details: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        error: 'Failed to process request',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
