@@ -23,6 +23,8 @@ export function FileAttachment({
       return <Image className="w-4 h-4 text-blue-500" />;
     } else if (type.includes('excel') || type.includes('spreadsheet') || fileName.toLowerCase().endsWith('.xlsx') || fileName.toLowerCase().endsWith('.xls') || fileName.toLowerCase().endsWith('.csv')) {
       return <Table className="w-4 h-4 text-green-500" />;
+    } else if (type.includes('word') || type.includes('document') || fileName.toLowerCase().endsWith('.doc') || fileName.toLowerCase().endsWith('.docx')) {
+      return <FileText className="w-4 h-4 text-blue-500" />;
     }
     return <File className="w-4 h-4 text-gray-500" />;
   };

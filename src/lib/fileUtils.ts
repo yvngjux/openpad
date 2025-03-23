@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { extractPDFContent } from './pdfUtils';
+import mammoth from 'mammoth';
 
 const MAX_FILE_SIZE_MB = 10;
 const MAX_TEXT_LENGTH = 50000; // characters
@@ -48,6 +49,14 @@ async function processFile(file: File): Promise<FileProcessingResult> {
       return { success: false, content: '', error: content.substring(2) };
     }
     return { success: true, content };
+  }
+
+  // Handle Word documents
+  if (fileType === 'application/msword' || 
+      fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      fileName.endsWith('.doc') ||
+      fileName.endsWith('.docx')) {
+    return await processWordDocument(file);
   }
 
   // Handle Excel files
@@ -181,6 +190,41 @@ async function processImage(file: File): Promise<FileProcessingResult> {
       success: false,
       content: '',
       error: 'Unable to process this image. Please try with a different file.'
+    };
+  }
+}
+
+async function processWordDocument(file: File): Promise<FileProcessingResult> {
+  try {
+    // Convert File to ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer();
+    
+    // Process the document using mammoth
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    
+    if (!result.value) {
+      return {
+        success: false,
+        content: '',
+        error: 'The Word document appears to be empty or contains no readable text.'
+      };
+    }
+
+    // Handle any warnings
+    if (result.messages.length > 0) {
+      console.warn('Word document processing warnings:', result.messages);
+    }
+
+    return {
+      success: true,
+      content: result.value
+    };
+  } catch (error) {
+    console.error('Word document processing error:', error);
+    return {
+      success: false,
+      content: '',
+      error: 'Unable to read Word document. Please ensure it\'s a valid Word file.'
     };
   }
 } 

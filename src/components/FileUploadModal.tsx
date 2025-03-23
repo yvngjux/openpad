@@ -56,6 +56,8 @@ export function FileUploadModal({ isOpen, onClose, onFilesSelected }: FileUpload
                   'text/csv': ['.csv'],
                   'image/*': ['.png', '.jpg', '.jpeg'],
                   'text/plain': ['.txt'],
+                  'application/msword': ['.doc'],
+                  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
                 }}
                 onDrop={(acceptedFiles) => {
                   onFilesSelected(acceptedFiles);
@@ -76,7 +78,7 @@ export function FileUploadModal({ isOpen, onClose, onFilesSelected }: FileUpload
                     </p>
                   </div>
                   <p className="text-xs text-gray-400">
-                    Accepts PDF, Excel, CSV, images, and text files
+                    Accepts PDF, Excel, CSV, Word documents, images, and text files
                   </p>
                 </div>
                 <DropzoneContent />

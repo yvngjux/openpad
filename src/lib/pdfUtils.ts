@@ -86,7 +86,6 @@ export async function extractPDFContent(file: File): Promise<string> {
     return '❌ Unable to process this PDF. Please try with a different document.';
   }
 }
-
 async function processPageWithTimeout(pdf: any, pageNum: number): Promise<string> {
   return new Promise(async (resolve, reject) => {
     let isResolved = false;
