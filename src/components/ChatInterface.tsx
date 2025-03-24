@@ -28,6 +28,7 @@ import { MCQ } from './MCQ';
 import { StudyToolButton } from './StudyToolButton';
 import { Message, ChatResponse, StudyTool, AttachedFile } from '@/types/chat';
 import { LoadingMessage } from './LoadingMessage';
+import { EmptyChatState } from './EmptyChatState';
 
 interface FileAttachmentProps {
   fileName: string;
@@ -355,12 +356,20 @@ export default function ChatInterface() {
     setShowStudyTool(false);
   };
 
+  const handleSuggestionClick = async (suggestion: string) => {
+    await handleSubmit(suggestion, false);
+  };
+
   return (
     <div className="flex flex-col h-screen max-h-screen overflow-hidden">
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto relative">
           <div className="max-w-5xl mx-auto p-4 space-y-6">
+            <EmptyChatState 
+              show={!isProcessing && (!messages || messages.length === 0)}
+              onSuggestionClick={handleSuggestionClick}
+            />
             {messages && messages.map((message) => (
               <div
                 key={message.id}

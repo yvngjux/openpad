@@ -13,6 +13,7 @@ import { extractFileContent } from '@/lib/fileUtils';
 import { FlashcardCarousel } from '@/features/flashcards/components/FlashcardCarousel';
 import { FlashcardDeck, FlashcardAPIResponse } from '@/features/flashcards/types';
 import { FlashcardLoading } from '@/components/FlashcardLoading';
+import { EmptyFlashcardsState } from '@/components/EmptyFlashcardsState';
 
 // Generate a unique ID for messages
 const generateUniqueId = () => {
@@ -331,37 +332,13 @@ export default function FlashcardsPage() {
   return (
     <div className="flex flex-col h-screen max-h-screen overflow-hidden">
       <div className="flex-1 flex flex-col overflow-hidden">
-        {!currentSession ? (
-          <>
-            <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-50 to-white">
-              <div className="max-w-5xl mx-auto p-8">
-                {/* Welcome Section */}
-                <div className="text-center mb-12">
-                  <div className="mb-4">
-                    <div className="inline-block mb-4 relative w-24 h-24 rounded-xl">
-                      {imagesLoaded.logo ? (
-                        <Image
-                          src="/images/noetica.png"
-                          alt="Noetica Logo"
-                          fill
-                          className="object-contain p-2"
-                          onError={() => setImagesLoaded(prev => ({ ...prev, logo: false }))}
-                          onLoad={() => setImagesLoaded(prev => ({ ...prev, logo: true }))}
-                          priority
-                        />
-                      ) : (
-                        <Bot className="w-12 h-12 text-gray-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                      )}
-                    </div>
-                    <h1 className="text-3xl font-mono mb-2">What would you like to create flashcards about?</h1>
-                    <p className="text-gray-600 text-sm bg-gray-50/80 backdrop-blur-sm px-4 py-2 rounded-lg inline-block">
-                      Tip: You can specify the number of cards by saying "5 cards about [topic]" or "[topic] with 5 cards"
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
+        {!currentSession || !messages.length ? (
+          <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-50 to-white relative">
+            <EmptyFlashcardsState
+              show={true}
+              onSuggestionClick={(suggestion) => handleSubmit(suggestion, false)}
+            />
+          </div>
         ) : (
           <>
             {/* Messages Area */}
