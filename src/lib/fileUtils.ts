@@ -54,8 +54,21 @@ async function processFile(file: File): Promise<FileProcessingResult> {
   // Handle Word documents
   if (fileType === 'application/msword' || 
       fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.template' ||
+      fileType === 'application/vnd.ms-word.document.macroEnabled.12' ||
+      fileType === 'application/vnd.ms-word.template.macroEnabled.12' ||
+      fileType === 'application/vnd.oasis.opendocument.text' ||
+      fileType === 'application/vnd.oasis.opendocument.text-template' ||
+      fileType === 'application/rtf' ||
       fileName.endsWith('.doc') ||
-      fileName.endsWith('.docx')) {
+      fileName.endsWith('.docx') ||
+      fileName.endsWith('.dot') ||
+      fileName.endsWith('.dotx') ||
+      fileName.endsWith('.docm') ||
+      fileName.endsWith('.dotm') ||
+      fileName.endsWith('.odt') ||
+      fileName.endsWith('.ott') ||
+      fileName.endsWith('.rtf')) {
     return await processWordDocument(file);
   }
 

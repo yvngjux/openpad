@@ -56,8 +56,14 @@ export function FileUploadModal({ isOpen, onClose, onFilesSelected }: FileUpload
                   'text/csv': ['.csv'],
                   'image/*': ['.png', '.jpg', '.jpeg'],
                   'text/plain': ['.txt'],
-                  'application/msword': ['.doc'],
-                  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
+                  'application/msword': ['.doc', '.dot'],
+                  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+                  'application/vnd.openxmlformats-officedocument.wordprocessingml.template': ['.dotx'],
+                  'application/vnd.ms-word.document.macroEnabled.12': ['.docm'],
+                  'application/vnd.ms-word.template.macroEnabled.12': ['.dotm'],
+                  'application/vnd.oasis.opendocument.text': ['.odt'],
+                  'application/vnd.oasis.opendocument.text-template': ['.ott'],
+                  'application/rtf': ['.rtf']
                 }}
                 onDrop={(acceptedFiles) => {
                   onFilesSelected(acceptedFiles);

@@ -63,7 +63,12 @@ const FileIcon: React.FC<FileIconProps> = ({ type }) => {
   return <MessageSquare className="w-4 h-4" />;
 };
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export default function Sidebar({ isOpen, onOpenChange }: SidebarProps) {
   const router = useRouter();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newItemType, setNewItemType] = useState<'folder' | 'file'>('folder');
@@ -82,6 +87,11 @@ export default function Sidebar() {
     createNewSession
   } = useSpaces();
 
+  const handleMobileMenuToggle = (value: boolean) => {
+    setOpen(value);
+    onOpenChange?.(value);
+  };
+
   const handleCreateItem = () => {
     if (!newItemName.trim()) return;
 
@@ -99,7 +109,7 @@ export default function Sidebar() {
     <>
       {/* Desktop Sidebar */}
       <motion.div
-        className="h-screen hidden md:flex md:flex-col bg-[#f7f7f7] rounded-tr-2xl rounded-br-2xl z-50"
+        className="h-screen hidden md:flex md:flex-col bg-[#f7f7f7] rounded-r-3xl z-50 border-r border-gray-200/80 relative"
         initial={false}
         animate={{
           width: open ? "280px" : "60px",
@@ -114,7 +124,7 @@ export default function Sidebar() {
         onMouseLeave={() => setOpen(false)}
       >
         {/* Header */}
-        <div className="absolute top-0 left-0 right-0 p-4 flex items-center gap-3">
+        <div className="p-4 flex items-center gap-3">
           {/* Logo - Fixed size and position */}
           <div className="relative w-10 h-10 flex-shrink-0">
             <Image
@@ -129,7 +139,7 @@ export default function Sidebar() {
           
           {/* Greeting - Only visible when sidebar is open */}
           <motion.h1 
-            className="text-xl font-semibold text-gray-800 origin-left absolute left-[60px]"
+            className="text-xl font-semibold text-gray-800 origin-left"
             initial={false}
             animate={{
               opacity: open ? 1 : 0,
@@ -145,10 +155,9 @@ export default function Sidebar() {
           </motion.h1>
         </div>
 
-        {/* Search Bar - Adjust margin to account for fixed header height */}
+        {/* Search Bar */}
         <motion.div 
-          className="relative px-4"
-          style={{ marginTop: "68px" }}
+          className="px-4 mb-4"
           initial={false}
           animate={{
             opacity: open ? 1 : 0,
@@ -341,54 +350,225 @@ export default function Sidebar() {
 
       {/* Mobile Sidebar */}
       <div className="md:hidden">
-        <div className="h-10 px-4 py-4 flex flex-row items-center justify-between bg-[#f7f7f7] border-b border-gray-200 w-full">
-          <div className="flex justify-end z-20 w-full">
-            <Menu
-              className="text-gray-800 cursor-pointer"
-              onClick={() => setOpen(!open)}
-            />
-          </div>
-        </div>
         <AnimatePresence>
-          {open && (
-            <motion.div
-              initial={{ x: "-100%", opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: "-100%", opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="fixed h-full w-full inset-0 bg-white dark:bg-neutral-900 p-10 z-[100] flex flex-col justify-between rounded-2xl"
-            >
-              <div
-                className="absolute right-10 top-10 z-50 text-gray-800 cursor-pointer"
-                onClick={() => setOpen(false)}
+          {(isOpen ?? open) && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+                onClick={() => handleMobileMenuToggle(false)}
+              />
+              
+              {/* Sidebar */}
+              <motion.div
+                initial={{ x: "-100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "-100%" }}
+                transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                className="fixed top-0 left-0 bottom-0 w-[280px] bg-[#f7f7f7] z-50 overflow-y-auto rounded-r-3xl border-r border-gray-200/80 flex flex-col"
               >
-                <X />
-              </div>
-              {/* Search Bar - Update positioning to stay fixed in navbar */}
-              <motion.div 
-                className="relative px-4"
-                style={{ marginTop: "64px" }}
-                animate={{
-                  opacity: open ? 1 : 0,
-                }}
-              >
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <Input
-                    type="search"
-                    placeholder="Search..."
-                    className="pl-9 pr-16 bg-gray-50/50 border-gray-200/80 hover:border-gray-300 focus:border-gray-300"
-                  />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <kbd className="inline-flex h-5 select-none items-center gap-1 rounded border bg-gray-50 px-1.5 font-mono text-[10px] font-medium text-gray-500">
-                      <span className="text-xs">⌘</span>K
-                    </kbd>
+                {/* Header */}
+                <div className="h-14 px-4 flex items-center gap-3 border-b border-gray-200/80">
+                  <div className="relative w-8 h-8 flex-shrink-0">
+                    <Image
+                      src="/images/noetica.png"
+                      alt="Noetica Logo"
+                      fill
+                      sizes="32px"
+                      className="object-contain"
+                      priority
+                    />
+                  </div>
+                  <h1 className="text-lg font-semibold text-gray-800">
+                    Hi, Julien
+                  </h1>
+                  <button
+                    onClick={() => handleMobileMenuToggle(false)}
+                    className="p-2 hover:bg-gray-200/50 rounded-lg transition-colors ml-auto"
+                    aria-label="Close navigation menu"
+                  >
+                    <X className="h-5 w-5 text-gray-600" />
+                  </button>
+                </div>
+
+                {/* Main Content */}
+                <div className="flex-1 overflow-y-auto">
+                  <div className="p-4">
+                    <div className="relative mb-6">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input
+                        type="search"
+                        placeholder="Search..."
+                        className="pl-9 pr-16 bg-gray-50/50 border-gray-200/80 hover:border-gray-300 focus:border-gray-300"
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                        <kbd className="inline-flex h-5 select-none items-center gap-1 rounded border bg-gray-50 px-1.5 font-mono text-[10px] font-medium text-gray-500">
+                          <span className="text-xs">⌘</span>K
+                        </kbd>
+                      </div>
+                    </div>
+
+                    {/* Main Links */}
+                    <div className="space-y-2">
+                      <Link 
+                        href="/cursus" 
+                        className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-200/50 rounded-lg transition-colors"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setSelectedFile(null);
+                          router.replace('/cursus');
+                          handleMobileMenuToggle(false);
+                        }}
+                      >
+                        <Code className="w-5 h-5" />
+                        <span className="ml-2">Cursus</span>
+                      </Link>
+                      <Link 
+                        href="/" 
+                        className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-200/50 rounded-lg transition-colors"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const defaultSpace = spaces.find(s => s.isDefault) || spaces[0];
+                          const newSession = createNewSession();
+                          toggleSpaceExpanded(defaultSpace.id);
+                          setSelectedSpace(defaultSpace.id);
+                          setSelectedFile(newSession.id);
+                          router.replace('/');
+                          handleMobileMenuToggle(false);
+                        }}
+                      >
+                        <MessageSquare className="w-5 h-5" />
+                        <span className="ml-2">Chat</span>
+                      </Link>
+                      <Link 
+                        href="/flashcards" 
+                        className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-200/50 rounded-lg transition-colors"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const defaultSpace = spaces.find(s => s.isDefault) || spaces[0];
+                          const newSession = createNewSession('flashcards');
+                          toggleSpaceExpanded(defaultSpace.id);
+                          setSelectedSpace(defaultSpace.id);
+                          setSelectedFile(newSession.id);
+                          router.replace('/flashcards');
+                          handleMobileMenuToggle(false);
+                        }}
+                      >
+                        <FileText className="w-5 h-5" />
+                        <span className="ml-2">Flashcards</span>
+                      </Link>
+                    </div>
+
+                    {/* Spaces Section */}
+                    <div className="mt-6">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3">
+                          Spaces
+                        </span>
+                        <button
+                          onClick={() => {
+                            setIsCreateModalOpen(true);
+                            handleMobileMenuToggle(false);
+                          }}
+                          className="p-1 hover:bg-gray-200/50 rounded-lg transition-colors text-gray-600"
+                          aria-label="Create new space or chat"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Spaces List */}
+                      <div className="space-y-1">
+                        {spaces.map(space => (
+                          <div key={space.id} className="px-3">
+                            <div 
+                              className={`flex items-center space-x-2 px-3 py-2 text-gray-700 hover:bg-gray-200/50 rounded-lg transition-colors cursor-pointer ${
+                                selectedSpace === space.id ? 'bg-gray-200/50' : ''
+                              }`}
+                            >
+                              <button
+                                onClick={() => toggleSpaceExpanded(space.id)}
+                                className="p-1 hover:bg-gray-200/50 rounded transition-colors"
+                              >
+                                {space.isExpanded ? (
+                                  <ChevronDown className="w-4 h-4" />
+                                ) : (
+                                  <ChevronRight className="w-4 h-4" />
+                                )}
+                              </button>
+                              <div 
+                                className="flex-1 flex items-center space-x-2"
+                                onClick={() => {
+                                  setSelectedSpace(space.id);
+                                  handleMobileMenuToggle(false);
+                                }}
+                              >
+                                <Folder className="w-5 h-5" />
+                                <span>{space.name}</span>
+                              </div>
+                            </div>
+
+                            <AnimatePresence initial={false}>
+                              {space.isExpanded && space.files.length > 0 && (
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: "auto" }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                                  className="ml-6 mt-1 space-y-1"
+                                >
+                                  {space.files
+                                    .sort((a, b) => {
+                                      const aTime = new Date(a.lastAccessedAt || a.updatedAt).getTime();
+                                      const bTime = new Date(b.lastAccessedAt || b.updatedAt).getTime();
+                                      return bTime - aTime;
+                                    })
+                                    .map(file => (
+                                      <motion.div
+                                        key={file.id}
+                                        initial={{ opacity: 0, x: -10 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -10 }}
+                                        transition={{ duration: 0.2 }}
+                                      >
+                                        <Link
+                                          href={file.type === 'cursus' ? '/cursus' : file.type === 'flashcards' ? '/flashcards' : '/'}
+                                          className={`flex items-center space-x-2 px-3 py-2 text-gray-700 hover:bg-gray-200/50 rounded-lg transition-colors cursor-pointer ${
+                                            selectedFile === file.id ? 'bg-gray-200/70 font-medium' : ''
+                                          }`}
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            setSelectedFile(file.id);
+                                            router.replace(file.type === 'cursus' ? '/cursus' : file.type === 'flashcards' ? '/flashcards' : '/');
+                                            handleMobileMenuToggle(false);
+                                          }}
+                                        >
+                                          {file.type === 'cursus' ? <Code className="w-4 h-4" /> : 
+                                           file.type === 'flashcards' ? <FileText className="w-4 h-4" /> : 
+                                           <MessageSquare className="w-4 h-4" />}
+                                          <span className="truncate">{file.name}</span>
+                                        </Link>
+                                      </motion.div>
+                                    ))}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
+
+                {/* Bottom Dock */}
+                <div className="mt-auto border-t border-gray-200/80">
+                  <DockDemo />
+                </div>
               </motion.div>
-              {/* Mobile sidebar content - same as desktop but without animations */}
-              {/* ... Copy the content from desktop sidebar but remove motion animations ... */}
-            </motion.div>
+            </>
           )}
         </AnimatePresence>
       </div>

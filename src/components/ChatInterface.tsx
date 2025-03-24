@@ -141,6 +141,13 @@ export default function ChatInterface() {
 
   const messages = currentSession?.messages || [];
 
+  // Create a new session immediately if there isn't one
+  useEffect(() => {
+    if (!currentSession) {
+      createNewSession();
+    }
+  }, [currentSession, createNewSession]);
+
   // Add useEffect for auto-scrolling
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -351,140 +358,103 @@ export default function ChatInterface() {
   return (
     <div className="flex flex-col h-screen max-h-screen overflow-hidden">
       <div className="flex-1 flex flex-col overflow-hidden">
-        {!currentSession ? (
-          <>
-            <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-50 to-white">
-              <div className="max-w-5xl mx-auto p-8">
-                {/* Welcome Section */}
-                <div className="text-center mb-12">
-                  <div className="mb-4">
-                    <div className="inline-block mb-4 relative w-24 h-24 rounded-xl">
-                      {imagesLoaded.logo ? (
-                        <Image
-                          src="/images/noetica.png"
-                          alt="Noetica Logo"
-                          fill
-                          className="object-contain p-2"
-                          onError={() => setImagesLoaded(prev => ({ ...prev, logo: false }))}
-                          onLoad={() => setImagesLoaded(prev => ({ ...prev, logo: true }))}
-                          priority
-                        />
-                      ) : (
-                        <Bot className="w-12 h-12 text-gray-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                      )}
-                    </div>
-                    <h1 className="text-3xl font-mono mb-2">What would you like to learn about today?</h1>
-                    <p className="text-gray-600 text-sm bg-gray-50/80 backdrop-blur-sm px-4 py-2 rounded-lg inline-block">
-                      Tip: Use <code className="bg-gray-100 px-1 py-0.5 rounded">@graph</code> before your question to interact with the graphing calculator
-                      <br />
-                      Example: "@graph y=x^2 can you explain this quadratic function?"
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="max-w-5xl mx-auto p-4 space-y-6">
-                {messages && messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${
-                      message.role === 'user' ? 'justify-end' : 'justify-start'
-                    } w-full`}
-                  >
-                    <div className={`flex flex-col ${
-                      message.role === 'assistant' ? 'pr-4 items-start' : 'pl-4 items-end'
-                    } max-w-[70%] w-full`}>
-                      {message.role === 'assistant' && (
-                        <div className="flex items-center space-x-2 mb-2">
-                          <div className="w-8 h-8 relative rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
-                            {imagesLoaded.avatar ? (
-                              <Image
-                                src="/images/noetica_black.png"
-                                alt="Carole"
-                                fill
-                                className="object-cover p-1"
-                                onError={() => setImagesLoaded(prev => ({ ...prev, avatar: false }))}
-                                onLoad={() => setImagesLoaded(prev => ({ ...prev, avatar: true }))}
-                                priority
-                              />
-                            ) : (
-                              <Bot className="w-5 h-5 text-gray-600" />
-                            )}
-                          </div>
-                          <span className="text-sm text-gray-600">Carole</span>
-                        </div>
-                      )}
-                      {message.attachedFiles && message.attachedFiles.length > 0 && (
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                          {message.attachedFiles.map((attachment: AttachedFile, index: number) => (
-                            <FileAttachment
-                              key={index}
-                              fileName={attachment.file.name}
-                              fileType={attachment.file.type}
-                              showRemoveButton={false}
-                            />
-                          ))}
-                        </div>
-                      )}
-                      <div
-                        className={`${
-                          message.role === 'user'
-                            ? 'bg-gray-100 border border-gray-200 text-gray-800 p-4 rounded-2xl'
-                            : 'bg-gray-50/80 backdrop-blur-sm p-4 rounded-2xl text-gray-800'
-                        }`}
-                      >
-                        {message.role === 'assistant' ? (
-                          <MessageContent 
-                            message={message} 
-                            onTopicClick={handleTopicClick}
-                            onStudyToolClick={handleStudyToolClick}
-                            showStudyTool={showStudyTool}
-                            onCloseStudyTool={handleCloseStudyTool}
-                            isProcessing={isProcessing}
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-5xl mx-auto p-4 space-y-6">
+            {messages && messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${
+                  message.role === 'user' ? 'justify-end' : 'justify-start'
+                } w-full`}
+              >
+                <div className={`flex flex-col ${
+                  message.role === 'assistant' ? 'pr-4 items-start' : 'pl-4 items-end'
+                } max-w-[70%] w-full`}>
+                  {message.role === 'assistant' && (
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="w-8 h-8 relative rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {imagesLoaded.avatar ? (
+                          <Image
+                            src="/images/noetica_black.png"
+                            alt="Carole"
+                            fill
+                            className="object-cover p-1"
+                            onError={() => setImagesLoaded(prev => ({ ...prev, avatar: false }))}
+                            onLoad={() => setImagesLoaded(prev => ({ ...prev, avatar: true }))}
+                            priority
                           />
                         ) : (
-                          <div className="text-[15px] leading-relaxed">
-                            {message.content}
-                          </div>
+                          <Bot className="w-5 h-5 text-gray-600" />
                         )}
                       </div>
-                      {message.role === 'assistant' && (
-                        <button
-                          onClick={async () => {
-                            try {
-                              await navigator.clipboard.writeText(message.content);
-                              const button = document.activeElement as HTMLButtonElement;
-                              if (button) {
-                                const icon = button.querySelector('svg');
-                                if (icon) {
-                                  icon.classList.add('text-green-500');
-                                  setTimeout(() => icon.classList.remove('text-green-500'), 2000);
-                                }
-                              }
-                            } catch (err) {
-                              console.error('Failed to copy text:', err);
-                            }
-                          }}
-                          className="self-start mt-2 p-1.5 hover:bg-gray-100 rounded-full transition-colors"
-                          title="Copy message"
-                        >
-                          <Copy className="w-4 h-4 text-gray-400 hover:text-gray-600 transition-colors" />
-                        </button>
-                      )}
+                      <span className="text-sm text-gray-600">Carole</span>
                     </div>
+                  )}
+                  {message.attachedFiles && message.attachedFiles.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      {message.attachedFiles.map((attachment: AttachedFile, index: number) => (
+                        <FileAttachment
+                          key={index}
+                          fileName={attachment.file.name}
+                          fileType={attachment.file.type}
+                          showRemoveButton={false}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  <div
+                    className={`${
+                      message.role === 'user'
+                        ? 'bg-gray-100 border border-gray-200 text-gray-800 p-4 rounded-2xl'
+                        : 'bg-gray-50/80 backdrop-blur-sm p-4 rounded-2xl text-gray-800'
+                    }`}
+                  >
+                    {message.role === 'assistant' ? (
+                      <MessageContent 
+                        message={message} 
+                        onTopicClick={handleTopicClick}
+                        onStudyToolClick={handleStudyToolClick}
+                        showStudyTool={showStudyTool}
+                        onCloseStudyTool={handleCloseStudyTool}
+                        isProcessing={isProcessing}
+                      />
+                    ) : (
+                      <div className="text-[15px] leading-relaxed">
+                        {message.content}
+                      </div>
+                    )}
                   </div>
-                ))}
-                {isProcessing && <LoadingMessage />}
-                <div ref={messagesEndRef} />
+                  {message.role === 'assistant' && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(message.content);
+                          const button = document.activeElement as HTMLButtonElement;
+                          if (button) {
+                            const icon = button.querySelector('svg');
+                            if (icon) {
+                              icon.classList.add('text-green-500');
+                              setTimeout(() => icon.classList.remove('text-green-500'), 2000);
+                            }
+                          }
+                        } catch (err) {
+                          console.error('Failed to copy text:', err);
+                        }
+                      }}
+                      className="self-start mt-2 p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+                      title="Copy message"
+                    >
+                      <Copy className="w-4 h-4 text-gray-400 hover:text-gray-600 transition-colors" />
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          </>
-        )}
+            ))}
+            {isProcessing && <LoadingMessage />}
+            <div ref={messagesEndRef} />
+          </div>
+        </div>
 
         {/* Input Area */}
         <div className="flex-shrink-0 bg-white">

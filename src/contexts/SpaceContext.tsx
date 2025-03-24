@@ -170,6 +170,50 @@ export function SpaceProvider({ children }: { children: ReactNode }) {
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const sessionType = type || 'regular';
 
+    // If no default space exists, create one first
+    if (!defaultSpace) {
+      const newDefaultSpace: Space = {
+        id: uuidv4(),
+        name: 'My Chats',
+        files: [],
+        isDefault: true,
+        isExpanded: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      // Create a new session for this space
+      const newSession: File = {
+        id: uuidv4(),
+        name: `${sessionType === 'flashcards' ? 'Flashcards' : 'Chat'} ${timestamp}`,
+        type: sessionType,
+        spaceId: newDefaultSpace.id,
+        messages: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        lastAccessedAt: new Date().toISOString(),
+        title: sessionType === 'flashcards' ? 'New Flashcards' : 'New Chat',
+        metadata: {
+          model: 'mixtral-8x7b-32768',
+          historyEnabled: true,
+          systemPrompt: sessionType === 'flashcards' 
+            ? "You are a flashcard generation AI. You create clear, concise, and educational flashcards."
+            : "Hi! I'm Carole, your STEM tutor and assistant."
+        }
+      };
+
+      // Update spaces with both the new space and session
+      setSpaces([{
+        ...newDefaultSpace,
+        files: [newSession]
+      }]);
+      setSelectedSpace(newDefaultSpace.id);
+      setCurrentSession(newSession);
+      setSelectedFile(newSession.id);
+      
+      return newSession;
+    }
+
     // If we're creating a flashcards session, check if there's an active one
     if (sessionType === 'flashcards' && currentSession?.type === 'flashcards') {
       return currentSession;
