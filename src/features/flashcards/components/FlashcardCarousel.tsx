@@ -26,6 +26,7 @@ export const FlashcardCarousel: React.FC<FlashcardCarouselProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
 
   React.useEffect(() => {
     setMounted(true);
@@ -89,7 +90,7 @@ export const FlashcardCarousel: React.FC<FlashcardCarouselProps> = ({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-0 flex items-center justify-center pointer-events-none"
+            className="fixed inset-0 flex items-center justify-center"
             style={{ zIndex: 50 }}
           >
             <div 
@@ -114,8 +115,23 @@ export const FlashcardCarousel: React.FC<FlashcardCarouselProps> = ({
                 <div className="h-px bg-gray-200" />
 
                 <div className="text-sm text-gray-500 uppercase tracking-wider">Answer</div>
-                <div className="text-lg font-medium text-gray-800">
-                  {selectedCard.answer}
+                <div className="text-lg font-medium text-gray-800 prose prose-headings:mb-4 prose-headings:mt-6 prose-p:my-2">
+                  {selectedCard.answer.split('\n\n').map((paragraph, index) => {
+                    // Check if the paragraph is a heading (starts with "##")
+                    if (paragraph.startsWith('##')) {
+                      return (
+                        <h2 key={index} className="text-2xl font-bold text-gray-900 mt-6 mb-4">
+                          {paragraph.replace('##', '').trim()}
+                        </h2>
+                      );
+                    }
+                    // Regular paragraph
+                    return (
+                      <p key={index} className="text-base text-gray-800 my-2">
+                        {paragraph}
+                      </p>
+                    );
+                  })}
                 </div>
 
                 <div className="h-px bg-gray-200" />
@@ -127,7 +143,7 @@ export const FlashcardCarousel: React.FC<FlashcardCarouselProps> = ({
                   }}
                   className="w-full py-3 px-4 bg-white hover:bg-gray-50 
                            text-gray-900 font-medium rounded-lg
-                           border border-grey
+                           border border-grey cursor-pointer
                            transition-all duration-200 ease-in-out
                            flex items-center justify-center space-x-2"
                 >
