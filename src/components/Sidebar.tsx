@@ -17,7 +17,8 @@ import {
   Bell,
   ChevronRight,
   MessageSquare,
-  Menu
+  Menu,
+  BarChart2
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useSpaces } from '@/contexts/SpaceContext';
@@ -27,7 +28,7 @@ import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
-type ChatType = 'regular' | 'cursus' | 'flashcards';
+type ChatType = 'regular' | 'cursus' | 'flashcards' | 'graph';
 
 interface FileIconProps {
   type: ChatType;
@@ -50,7 +51,7 @@ export const useSidebar = () => {
 };
 
 const isChatType = (type: unknown): type is ChatType => {
-  return type === 'cursus' || type === 'regular' || type === 'flashcards';
+  return type === 'cursus' || type === 'regular' || type === 'flashcards' || type === 'graph';
 };
 
 const FileIcon: React.FC<FileIconProps> = ({ type }) => {
@@ -241,6 +242,26 @@ export default function Sidebar({ isOpen, onOpenChange }: SidebarProps) {
               <span className="ml-2">Flashcards</span>
             )}
           </Link>
+          <Link 
+            href="/graph" 
+            className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-200/50 rounded-lg transition-colors"
+            onClick={(e) => {
+              e.preventDefault();
+              const defaultSpace = spaces.find(s => s.isDefault) || spaces[0];
+              const newSession = createNewSession('graph');
+              toggleSpaceExpanded(defaultSpace.id);
+              setSelectedSpace(defaultSpace.id);
+              setSelectedFile(newSession.id);
+              router.replace('/graph');
+            }}
+          >
+            <div className="w-5 flex items-center justify-center">
+              <BarChart2 className="w-5 h-5" />
+            </div>
+            {open && (
+              <span className="ml-2">Graph</span>
+            )}
+          </Link>
         </div>
 
         {open && (
@@ -310,18 +331,19 @@ export default function Sidebar({ isOpen, onOpenChange }: SidebarProps) {
                               transition={{ duration: 0.2 }}
                             >
                               <Link
-                                href={file.type === 'cursus' ? '/cursus' : file.type === 'flashcards' ? '/flashcards' : '/'}
+                                href={file.type === 'cursus' ? '/cursus' : file.type === 'flashcards' ? '/flashcards' : file.type === 'graph' ? '/graph' : '/'}
                                 className={`flex items-center space-x-2 px-3 py-2 text-gray-700 hover:bg-gray-200/50 rounded-lg transition-colors cursor-pointer ${
                                   selectedFile === file.id ? 'bg-gray-200/70 font-medium' : ''
                                 }`}
                                 onClick={(e) => {
                                   e.preventDefault();
                                   setSelectedFile(file.id);
-                                  router.replace(file.type === 'cursus' ? '/cursus' : file.type === 'flashcards' ? '/flashcards' : '/');
+                                  router.replace(file.type === 'cursus' ? '/cursus' : file.type === 'flashcards' ? '/flashcards' : file.type === 'graph' ? '/graph' : '/');
                                 }}
                               >
                                 {file.type === 'cursus' ? <Code className="w-4 h-4" /> : 
-                                 file.type === 'flashcards' ? <FileText className="w-4 h-4" /> : 
+                                 file.type === 'flashcards' ? <FileText className="w-4 h-4" /> :
+                                 file.type === 'graph' ? <BarChart2 className="w-4 h-4" /> :
                                  <MessageSquare className="w-4 h-4" />}
                                 <span className="truncate">{file.name}</span>
                               </Link>
@@ -460,6 +482,23 @@ export default function Sidebar({ isOpen, onOpenChange }: SidebarProps) {
                         <FileText className="w-5 h-5" />
                         <span className="ml-2">Flashcards</span>
                       </Link>
+                      <Link 
+                        href="/graph" 
+                        className="flex items-center px-3 py-2 text-gray-700 hover:bg-gray-200/50 rounded-lg transition-colors"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const defaultSpace = spaces.find(s => s.isDefault) || spaces[0];
+                          const newSession = createNewSession('graph');
+                          toggleSpaceExpanded(defaultSpace.id);
+                          setSelectedSpace(defaultSpace.id);
+                          setSelectedFile(newSession.id);
+                          router.replace('/graph');
+                          handleMobileMenuToggle(false);
+                        }}
+                      >
+                        <BarChart2 className="w-5 h-5" />
+                        <span className="ml-2">Graph</span>
+                      </Link>
                     </div>
 
                     {/* Spaces Section */}
@@ -535,19 +574,20 @@ export default function Sidebar({ isOpen, onOpenChange }: SidebarProps) {
                                         transition={{ duration: 0.2 }}
                                       >
                                         <Link
-                                          href={file.type === 'cursus' ? '/cursus' : file.type === 'flashcards' ? '/flashcards' : '/'}
+                                          href={file.type === 'cursus' ? '/cursus' : file.type === 'flashcards' ? '/flashcards' : file.type === 'graph' ? '/graph' : '/'}
                                           className={`flex items-center space-x-2 px-3 py-2 text-gray-700 hover:bg-gray-200/50 rounded-lg transition-colors cursor-pointer ${
                                             selectedFile === file.id ? 'bg-gray-200/70 font-medium' : ''
                                           }`}
                                           onClick={(e) => {
                                             e.preventDefault();
                                             setSelectedFile(file.id);
-                                            router.replace(file.type === 'cursus' ? '/cursus' : file.type === 'flashcards' ? '/flashcards' : '/');
+                                            router.replace(file.type === 'cursus' ? '/cursus' : file.type === 'flashcards' ? '/flashcards' : file.type === 'graph' ? '/graph' : '/');
                                             handleMobileMenuToggle(false);
                                           }}
                                         >
                                           {file.type === 'cursus' ? <Code className="w-4 h-4" /> : 
-                                           file.type === 'flashcards' ? <FileText className="w-4 h-4" /> : 
+                                           file.type === 'flashcards' ? <FileText className="w-4 h-4" /> :
+                                           file.type === 'graph' ? <BarChart2 className="w-4 h-4" /> :
                                            <MessageSquare className="w-4 h-4" />}
                                           <span className="truncate">{file.name}</span>
                                         </Link>

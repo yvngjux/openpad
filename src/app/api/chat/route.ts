@@ -225,25 +225,82 @@ export async function POST(req: Request) {
     try {
       // Handle single message explanation requests
       if (message) {
-        const { isBriefExplanation } = body;
+        const { isBriefExplanation, sessionType } = body;
         
         // Optimize token limits for faster responses
-        const maxTokens = isBriefExplanation ? 150 : 1000;
+        const maxTokens = isBriefExplanation ? 500 : 1500;
         
-        const completion = await createOpenAIChatCompletion([
-          {
-            role: 'system',
-            content: isBriefExplanation ? 
-              'Provide a very brief, 2-3 sentence explanation of the concept.' :
-              'Provide a clear, structured explanation with key points and examples.'
-          },
-          {
-            role: 'user',
-            content: message.startsWith('Yes') && messages?.length > 1 ? 
-              `Explain this concept: ${messages[messages.length - 2].content}` :
-              message
-          }
-        ], 0.7, maxTokens);
+        const systemMessage = sessionType === 'graph' ? {
+          role: 'system',
+          content: `You are a precise mathematical graphing assistant. Follow these rules exactly:
+
+1. ONLY graph what is explicitly requested. Do not add any additional functions or elements that weren't asked for.
+
+2. Structure your responses in this format:
+   First: Explain what you're going to plot in plain text
+   Then: Add the LaTeX expression for Desmos (hidden from user)
+
+3. When asked about what's currently plotted, refer to your previous responses and the actual expressions you've plotted.
+
+4. Maintain context of the conversation and previously plotted functions.
+
+Example responses:
+
+For simple functions:
+"I'll plot the linear function y = 2x - 4 in blue.
+\`$2x-4$\` \`@{"color":"blue"}@\`"
+
+For quadratic functions:
+"I'll plot the quadratic function y = x² + 3x - 2.
+\`$x^2+3x-2$\` \`@{"color":"black"}@\`"
+
+For circles:
+"I'll draw a circle with radius 5 centered at the origin.
+\`$x^2+y^2=25$\` \`@{"color":"blue"}@\`"
+
+For derivatives:
+"I'll plot the derivative of f(x) = x², which is f'(x) = 2x.
+\`$2x$\` \`@{"color":"red"}@\`"
+
+When asked about current plots:
+"I've plotted the linear function y = 2x - 4 in blue. This line has a slope of 2 and crosses the y-axis at -4."
+
+3. Use these plain text conventions:
+   - Write x² instead of x^2
+   - Write √x instead of sqrt(x)
+   - Write π instead of pi
+   - Write ∙ for multiplication
+   - Write ≤ or ≥ for inequalities
+
+4. For viewport adjustments (hidden from user):
+\`#[{"left":-10,"right":10,"bottom":-10,"top":10}]#\`
+
+5. For calculator settings (hidden from user):
+\`%{"polarMode":true}%\`
+
+Remember:
+- Keep explanations clear and simple
+- Use everyday mathematical notation in explanations
+- Hide all LaTeX and technical commands from the user's view
+- Only include the LaTeX expressions for Desmos to process
+- Maintain conversation context and refer to previous plots accurately`
+        } : {
+          role: 'system',
+          content: isBriefExplanation ? 
+            'You are a STEM tutor providing clear explanations. Your task is to: 1) Give a clear, concise explanation (2-3 sentences) of the concept. 2) Focus on key points and practical understanding. 3) After the explanation, ask if they would like a more detailed explanation. Keep responses engaging and direct.' :
+            'You are a STEM tutor providing detailed explanations. Your task is to: 1) Break down the concept into clear sections. 2) Include relevant examples and applications. 3) Use clear formatting for readability. 4) Make complex ideas accessible while maintaining accuracy.'
+        };
+
+        // For graph sessions, include conversation history
+        const apiMessages = sessionType === 'graph' && messages ? 
+          [systemMessage, ...messages] :
+          [systemMessage, { role: 'user', content: message }];
+
+        const completion = await createOpenAIChatCompletion(
+          apiMessages,
+          0.7,
+          maxTokens
+        );
 
         clearTimeout(timeoutId);
         return NextResponse.json({
@@ -264,30 +321,13 @@ export async function POST(req: Request) {
       return NextResponse.json({
         content: completion.choices[0]?.message?.content || 'No response generated'
       });
-    } catch (apiError: any) {
+    } catch (error) {
+      console.error('Error:', error);
       clearTimeout(timeoutId);
-      console.error('API Error:', apiError);
-      
-      let errorMessage = 'Failed to generate response';
-      if (apiError?.name === 'AbortError') {
-        errorMessage = 'Request timed out. Please try again with a shorter question.';
-      } else if (apiError instanceof Error) {
-        errorMessage = apiError.message;
-      }
-
-      return NextResponse.json(
-        { error: errorMessage },
-        { status: apiError?.name === 'AbortError' ? 504 : 500 }
-      );
+      return NextResponse.json({ error: 'Failed to generate response' }, { status: 500 });
     }
-  } catch (error: any) {
-    console.error('Error in chat API:', error);
-    return NextResponse.json(
-      { 
-        error: 'Failed to process request. Please try again with a shorter question.',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error('Error processing request:', error);
+    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
 } 

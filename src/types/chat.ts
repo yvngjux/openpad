@@ -17,7 +17,7 @@ export interface Message {
   id: string;
   content: string;
   role: 'user' | 'assistant';
-  type: 'regular' | 'cursus' | 'flashcards' | 'chat';
+  type: 'regular' | 'cursus' | 'flashcards' | 'chat' | 'graph';
   deck?: FlashcardDeck;
   attachedFiles?: AttachedFile[];
   studyTool?: StudyTool;

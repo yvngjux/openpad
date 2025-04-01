@@ -7,7 +7,7 @@ import { Message, AttachedFile } from '@/types/chat';
 export interface File {
   id: string;
   name: string;
-  type: 'regular' | 'cursus' | 'flashcards';
+  type: 'regular' | 'cursus' | 'flashcards' | 'graph';
   spaceId: string;
   messages: Message[];
   createdAt: string;
@@ -38,7 +38,7 @@ export interface SpaceContextType {
   setSelectedSpace: (spaceId: string) => void;
   createSpace: (name: string) => Space;
   deleteSpace: (spaceId: string) => void;
-  createFile: (name: string, type: 'regular' | 'cursus' | 'flashcards', spaceId: string) => File;
+  createFile: (name: string, type: 'regular' | 'cursus' | 'flashcards' | 'graph', spaceId: string) => File;
   deleteFile: (fileId: string) => void;
   getCurrentFileMessages: () => Message[];
   addMessageToFile: (messages: Message[]) => void;
@@ -51,7 +51,7 @@ export interface SpaceContextType {
   getFileById: (fileId: string) => File | undefined;
   getSpaceById: (spaceId: string) => Space | undefined;
   toggleSpaceExpanded: (spaceId: string) => void;
-  createNewSession: (type?: 'regular' | 'cursus' | 'flashcards') => File;
+  createNewSession: (type?: 'regular' | 'cursus' | 'flashcards' | 'graph') => File;
   currentSession: File | null;
   setCurrentSession: (session: File | null) => void;
 }
@@ -165,7 +165,7 @@ export function SpaceProvider({ children }: { children: ReactNode }) {
     return title || 'New Chat';
   };
 
-  const createNewSession = (type?: 'regular' | 'cursus' | 'flashcards') => {
+  const createNewSession = (type?: 'regular' | 'cursus' | 'flashcards' | 'graph') => {
     const defaultSpace = getDefaultSpace();
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const sessionType = type || 'regular';
@@ -185,19 +185,21 @@ export function SpaceProvider({ children }: { children: ReactNode }) {
       // Create a new session for this space
       const newSession: File = {
         id: uuidv4(),
-        name: `${sessionType === 'flashcards' ? 'Flashcards' : 'Chat'} ${timestamp}`,
+        name: `${sessionType === 'flashcards' ? 'Flashcards' : sessionType === 'graph' ? 'Graph' : 'Chat'} ${timestamp}`,
         type: sessionType,
         spaceId: newDefaultSpace.id,
         messages: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         lastAccessedAt: new Date().toISOString(),
-        title: sessionType === 'flashcards' ? 'New Flashcards' : 'New Chat',
+        title: sessionType === 'flashcards' ? 'New Flashcards' : sessionType === 'graph' ? 'New Graph' : 'New Chat',
         metadata: {
           model: 'mixtral-8x7b-32768',
           historyEnabled: true,
           systemPrompt: sessionType === 'flashcards' 
             ? "You are a flashcard generation AI. You create clear, concise, and educational flashcards."
+            : sessionType === 'graph'
+            ? "You are a data visualization expert. Help users create and understand various types of graphs and charts."
             : "Hi! I'm Carole, your STEM tutor and assistant."
         }
       };
@@ -214,26 +216,29 @@ export function SpaceProvider({ children }: { children: ReactNode }) {
       return newSession;
     }
 
-    // If we're creating a flashcards session, check if there's an active one
-    if (sessionType === 'flashcards' && currentSession?.type === 'flashcards') {
+    // If we're creating a flashcards or graph session, check if there's an active one
+    if ((sessionType === 'flashcards' && currentSession?.type === 'flashcards') ||
+        (sessionType === 'graph' && currentSession?.type === 'graph')) {
       return currentSession;
     }
 
     const newSession: File = {
       id: uuidv4(),
-      name: `${sessionType === 'flashcards' ? 'Flashcards' : 'Chat'} ${timestamp}`,
+      name: `${sessionType === 'flashcards' ? 'Flashcards' : sessionType === 'graph' ? 'Graph' : 'Chat'} ${timestamp}`,
       type: sessionType,
       spaceId: defaultSpace.id,
       messages: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       lastAccessedAt: new Date().toISOString(),
-      title: sessionType === 'flashcards' ? 'New Flashcards' : 'New Chat',
+      title: sessionType === 'flashcards' ? 'New Flashcards' : sessionType === 'graph' ? 'New Graph' : 'New Chat',
       metadata: {
         model: 'mixtral-8x7b-32768',
         historyEnabled: true,
         systemPrompt: sessionType === 'flashcards' 
           ? "You are a flashcard generation AI. You create clear, concise, and educational flashcards."
+          : sessionType === 'graph'
+          ? "You are a data visualization expert. Help users create and understand various types of graphs and charts."
           : "Hi! I'm Carole, your STEM tutor and assistant."
       }
     };
@@ -376,7 +381,7 @@ export function SpaceProvider({ children }: { children: ReactNode }) {
     setSpaces(prev => prev.filter(s => s.id !== spaceId));
   };
 
-  const createFile = (name: string, type: 'regular' | 'cursus' | 'flashcards', spaceId: string): File => {
+  const createFile = (name: string, type: 'regular' | 'cursus' | 'flashcards' | 'graph', spaceId: string): File => {
     const targetSpaceId = spaceId || getDefaultSpace().id;
     const newFile: File = {
       id: uuidv4(),

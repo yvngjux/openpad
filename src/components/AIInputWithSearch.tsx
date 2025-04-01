@@ -29,6 +29,7 @@ export function AIInputWithSearch({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [value, setValue] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const [isMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 768);
 
   useEffect(() => {
     const focusTextarea = () => {
@@ -37,22 +38,24 @@ export function AIInputWithSearch({
       }
     };
 
-    focusTextarea();
-
-    if (!submitted) {
+    if (!isMobile) {
       focusTextarea();
-    }
 
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('button') && !target.closest('a')) {
+      if (!submitted) {
         focusTextarea();
       }
-    };
 
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, [submitted]);
+      const handleClick = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('button') && !target.closest('a')) {
+          focusTextarea();
+        }
+      };
+
+      document.addEventListener('click', handleClick);
+      return () => document.removeEventListener('click', handleClick);
+    }
+  }, [submitted, isMobile]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -86,8 +89,15 @@ export function AIInputWithSearch({
   };
 
   return (
-    <div className="w-full">
-      <form onSubmit={handleSubmit} className={cn("w-full py-4", className)}>
+    <div className={cn(
+      "w-full",
+      isMobile ? "fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200" : ""
+    )}>
+      <form onSubmit={handleSubmit} className={cn(
+        "w-full",
+        isMobile ? "p-4" : "py-4",
+        className
+      )}>
         <div className="relative max-w-5xl w-full mx-auto">
           <div className="relative flex flex-col">
             <textarea
@@ -97,7 +107,8 @@ export function AIInputWithSearch({
               className={cn(
                 "w-full rounded-xl px-4 py-3 pr-32 bg-white border border-gray-200 text-gray-900",
                 "placeholder:text-gray-500 resize-none focus-visible:outline-none focus-visible:ring-1",
-                "focus-visible:ring-gray-300 leading-[1.2] min-h-[48px] max-h-[164px] overflow-y-auto"
+                "focus-visible:ring-gray-300 leading-[1.2] overflow-y-auto",
+                isMobile ? "min-h-[44px] max-h-[120px]" : "min-h-[48px] max-h-[164px]"
               )}
               ref={textareaRef}
               onKeyDown={handleKeyDown}
@@ -108,7 +119,10 @@ export function AIInputWithSearch({
               aria-label="Message input"
             />
 
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+            <div className={cn(
+              "absolute right-3 flex items-center gap-2",
+              isMobile ? "bottom-3" : "top-1/2 -translate-y-1/2"
+            )}>
               <button
                 type="button"
                 onClick={() => setShowSearch(!showSearch)}
